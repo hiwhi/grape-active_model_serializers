@@ -6,7 +6,7 @@ module Grape
           serializer = fetch_serializer(resource, env)
 
           if serializer
-            serializer.to_json
+            ActiveModel::Serializer.adapter.new(serializer).to_json
           else
             Grape::Formatter::Json.call resource, env
           end
@@ -16,7 +16,11 @@ module Grape
           endpoint = env['api.endpoint']
           options = build_options_from_endpoint(endpoint)
 
-          serializer = options.fetch(:serializer, ActiveModel::Serializer.serializer_for(resource))
+          if options[:serializer] && resource.respond_to?(:to_ary)
+            serializer = ActiveModel::Serializer::ArraySerializer
+          else
+            serializer = options.fetch(:serializer, ActiveModel::Serializer.serializer_for(resource))
+          end
           return nil unless serializer
 
           options[:scope] = endpoint unless options.key?(:scope)
